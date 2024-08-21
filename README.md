@@ -5,4 +5,4 @@
 
 
 ## Development environment
-Project developed with PyCharm 2022.3.2 and Python 3.12.5
+Project developed with PyCharm 2024.2 and Python 3.12.5
