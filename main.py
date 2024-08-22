@@ -1,11 +1,10 @@
 # Script to generate festival-schedule from input
-from logging import raiseExceptions
-from multiprocessing.managers import Value
 
 # Reads the input from a predefined file in the form of
 # show_name hour_start hour_stop [space separated]
 # and tries to put these shows onto different stages as efficiently as possible
-# Output is either a list of shows per stage with their starting time or a tabular overview depending on which output flags are set (verboseOutput and imageOutput)
+# Output is either a list of shows per stage with their allocation or a tabular overview depending
+# on which output flags are set (verboseOutput and imageOutput)
 
 # The sorting idea is to loop across the available stages and plan the act on the stage where the previous act is most adjacent
 
@@ -22,8 +21,8 @@ imageOutput = False
 class Show:
     def __init__(self, name, start, stop):
         self.name = name
-        self.start = int(start)
-        self.stop = int(stop)
+        self.start = int(start) # Starting hour
+        self.stop = int(stop) # Stopping hour (excluding), e.g. if stop = 10, it stops at 9:59
 
 # Use check occupation to see where show might fit and plan show at closest existing fit
 def planShow(localStagePlan, showNumber, showStart, showStop):
@@ -44,18 +43,18 @@ def planShow(localStagePlan, showNumber, showStart, showStop):
                 ii -= 1 # Descend into list
             stageClearance.append(showStart - ii)
         else:
-            stageClearance.append(0)
+            stageClearance.append(-1) # Indicate no clearance
 
     # If no stages available, create new stage
-    if sum(stageClearance) == 0:
+    if sum(stageClearance) == (-1 * len(stageClearance)):
         localStagePlan.append([0] * len(localStagePlan[0])) # Create new stage
         localStagePlan[-1][showStart:showStop] = [showNumber] * showDuration # Plan stage
     else:
         # Plan the show in the non-occupied, stage with least clearance
-        local_minimum = max(stageClearance)
-        best_stage = -1
+        local_minimum = max(stageClearance)+1
+        best_stage = 0 # By default use first stage in case all are equal
         for ii, clearance in enumerate(stageClearance):
-            if clearance != 0 and clearance < local_minimum:
+            if -1 < clearance < local_minimum:
                 local_minimum = clearance
                 best_stage = ii
         localStagePlan[best_stage][showStart:showStop] = [showNumber] * showDuration  # Plan stage
@@ -81,6 +80,8 @@ def main():
                 name, start, stop = line.split()
                 if int(start) > int(stop):
                     raise ValueError
+                # The description indicates the stop is included, whilst the script is based on stop being excluded
+                stop = int(stop) + 1
                 listShows.append(Show(name,start,stop))
             except ValueError:
                 print("Error reading line: %s" % line.replace("\r\n", "").replace("\n", ""))
@@ -89,11 +90,13 @@ def main():
     # For every show, plan show in Stage plan
     for showInt, show in enumerate(listShows):
         if showInt != 0: # Skip show 0
-            print(showInt)
             stagePlan = planShow(stagePlan,showInt,show.start,show.stop)
 
-    for stage in stagePlan:
-        print(stage)
+    # Now create output
+    if verboseOutput:
+        print("Hours: \t\t" + "\t|".join(map(str, range(len(stagePlan[0])) )))
+        for stageInt, stage in enumerate(stagePlan):
+            print("Stage %i: \t" %stageInt + "\t|".join(map(str, stage )))
 
 
 
