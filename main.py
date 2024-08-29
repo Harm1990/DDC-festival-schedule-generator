@@ -8,11 +8,13 @@
 
 # The sorting idea is to loop across the available stages and plan the act on the stage where the previous act is most adjacent
 
+from imageOutput import generate_stage_overview
+
 # Variables
 # Input is fixed for now
 inputFile = "randomLineup.txt"
 
-# Output
+# Output flags
 verboseOutput = True
 imageOutput = True
 
@@ -83,6 +85,7 @@ def main():
                     raise ValueError
                 # The description indicates the stop is included, whilst the script is based on stop being excluded
                 stop = int(stop) + 1
+                name = name.replace("\r\n", "").replace("\n", "")
                 list_shows.append(Show(name,start,stop,line_number))
             except ValueError:
                 print("Error reading line %i: %s" %(line_number,line.replace("\r\n", "").replace("\n", "")) )
@@ -96,18 +99,25 @@ def main():
     # Now create output
     if verboseOutput:
         if list_shows[-1].line_number > 99:
-            # Do not use separating '|', since it screws up formatting
+            # Do not use separating '|', since it screws up formatting for long number
             print("Hours: \t\t" + "\t".join(map(str, range(len(stage_plan[0])))))
             for stageInt, stage in enumerate(stage_plan):
                 print("Stage %i: \t" % (stageInt+1) + "\t".join(map(str, stage)))
         else:
+            # Do use separating '|', since it looks better
             print("Hours: \t\t" + "\t|".join(map(str, range(len(stage_plan[0])))))
             for stageInt, stage in enumerate(stage_plan):
                 print("Stage %i: \t" % (stageInt+1) + "\t|".join(map(str, stage)))
 
     if imageOutput:
-        # Move to exterior function
-        pass
+        # Create list of show names based on line number
+        show_names = [None] * (len(list_shows))
+        for show in list_shows[1:]:
+            show_names[show.line_number] = show.name
+        # Parse information to image generator and create image
+        image_file = generate_stage_overview(stage_plan,show_names,inputFile,True)
+        if image_file:
+            print("Stage overview image saved as: %s" %image_file)
 
 
 
